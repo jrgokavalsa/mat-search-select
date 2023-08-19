@@ -1,0 +1,57 @@
+<div>
+  <p>Mat multi select with search functionality</p>
+</div>
+<div>
+  <mat-form-field>
+    <mat-label>Toppings</mat-label>
+    <mat-select
+      panelClass="mat-search-panel"
+      [formControl]="toppings"
+      multiple
+      multiSelectSearch
+      [matSearchInput]="mInput"
+    >
+      <div class="mat-search-header">
+        <mat-checkbox
+          matIconPrefix
+          #mCheck
+          matTooltip="Select All"
+        ></mat-checkbox>
+        <mat-form-field appearance="outline" floatLabel="always">
+          <input matInput #mInput placeholder="Search" autocomplete="off" />
+          <mat-icon matSuffix>search</mat-icon>
+        </mat-form-field>
+        <button mat-icon-button #mClear>
+          <mat-icon>clear</mat-icon>
+        </button>
+      </div>
+      <mat-select-trigger>
+        {{toppings.value?.[0] || ''}}
+        <span *ngIf="(toppings.value?.length || 0) > 1">
+          (+{{ (toppings.value?.length || 0) - 1 }}
+          {{ toppings.value?.length === 2 ? "other" : "others" }})
+        </span>
+      </mat-select-trigger>
+      <div class="mat-search-options">
+        <ng-container
+          *ngIf="
+            (toppingList | multiSelectFilter : mInput.value).length > 0;
+            else noOptions
+          "
+        >
+          <mat-option
+            *ngFor="
+              let topping of toppingList | multiSelectFilter : mInput.value
+            "
+            [value]="topping"
+          >
+            {{ topping }}
+          </mat-option>
+        </ng-container>
+        <ng-template #noOptions>
+          <mat-option> No option found </mat-option>
+        </ng-template>
+      </div>
+    </mat-select>
+  </mat-form-field>
+</div>
