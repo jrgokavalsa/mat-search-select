@@ -33,24 +33,12 @@
         </span>
       </mat-select-trigger>
       <div class="mat-search-options">
-        <ng-container
-          *ngIf="
-            (toppingList | multiSelectFilter : mInput.value).length > 0;
-            else noOptions
-          "
+        <mat-option
+          *ngFor="let topping of toppingList | multiSelectFilter : mInput.value"
+          [value]="topping"
         >
-          <mat-option
-            *ngFor="
-              let topping of toppingList | multiSelectFilter : mInput.value
-            "
-            [value]="topping"
-          >
-            {{ topping }}
-          </mat-option>
-        </ng-container>
-        <ng-template #noOptions>
-          <mat-option> No option found </mat-option>
-        </ng-template>
+          {{ topping }}
+        </mat-option>
       </div>
     </mat-select>
   </mat-form-field>
