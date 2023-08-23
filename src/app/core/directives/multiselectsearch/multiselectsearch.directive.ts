@@ -1,34 +1,80 @@
 import { SelectionModel } from '@angular/cdk/collections';
-import { ContentChild, Directive, Input } from '@angular/core';
+import {
+  ContentChild,
+  Directive,
+  ElementRef,
+  Input,
+  OnDestroy,
+  Renderer2,
+} from '@angular/core';
 import { NgControl } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
 import { MatCheckbox, MatCheckboxChange } from '@angular/material/checkbox';
 import { MatOption, MatOptionSelectionChange } from '@angular/material/core';
 import { MatSelect } from '@angular/material/select';
-import { Subject, fromEvent, takeUntil } from 'rxjs';
+import { Subject, takeUntil, tap } from 'rxjs';
 
 @Directive({
   selector: '[multiSelectSearch]',
 })
-export class MultiSelectSearchDirective {
+export class MultiSelectSearchDirective implements OnDestroy {
   @Input('matSearchInput') _searchInput!: HTMLInputElement;
+  @Input('noResultsMessage') _noResultsMessage: string = 'No results found';
   @ContentChild('mClear') _mClear!: MatIconButton;
   @ContentChild('mCheck') _mCheck!: MatCheckbox;
+  @ContentChild('matOptions') optionsPanel!: ElementRef;
 
   private _destroy$ = new Subject<void>();
+  private _optionsSelected: SelectionModel<MatOption> =
+    new SelectionModel<MatOption>(this.matSelect.multiple, []);
 
-  ngOnDestroy(): void {
-    this._destroy$.next();
-    this._destroy$.complete();
-  }
+  private _noResultsclass = [
+    'mat-mdc-option',
+    'mdc-list-item',
+    'mdc-list-item--disabled',
+  ];
 
-  // private _selectedValues: MatOption[] = [];
-  private _optionsSelected = new SelectionModel<MatOption>(true, []);
-
-  constructor(private matSelect: MatSelect, private ngControl: NgControl) {}
+  constructor(
+    private matSelect: MatSelect,
+    private ngControl: NgControl,
+    private renderer: Renderer2
+  ) {}
 
   ngAfterViewInit(): void {
     this._attachEventListener();
+  }
+
+  /** if no results found while filter then no result element in the dropdown else remove the no result element if present */
+  _showNoOptions() {
+    const panel = this.matSelect.panel;
+    const optionLength = this.matSelect.options.length;
+    if (!panel) return;
+    optionLength == 0 ? this._addNoResults() : this._removeNoResults();
+  }
+
+  /** add no result element to the mat-options panel */
+  _addNoResults() {
+    const noResultsElement = this.renderer.createElement('mat-option');
+    this._noResultsclass.forEach((className) =>
+      this.renderer.addClass(noResultsElement, className)
+    );
+    this.renderer.setAttribute(noResultsElement, 'id', 'noResults');
+    this.renderer.appendChild(
+      noResultsElement,
+      this.renderer.createText(this._noResultsMessage)
+    );
+    this.renderer.appendChild(
+      this.optionsPanel.nativeElement,
+      noResultsElement
+    );
+  }
+
+  /** remove no result element if present */
+  _removeNoResults() {
+    const element: ElementRef =
+      this.optionsPanel.nativeElement.querySelector('#noResults');
+    if (!element) return;
+    this.renderer.removeChild(this.optionsPanel.nativeElement, element);
   }
 
   /** selects all the displayed options and set the checkbox state to true*/
@@ -93,13 +139,9 @@ export class MultiSelectSearchDirective {
         )
     );
 
-    if (selectionMissing) {
-      this._mCheck.checked = false;
-      return;
-    } else {
-      this._mCheck.checked = true;
-      return;
-    }
+    selectionMissing
+      ? this._setCheckboxState(false)
+      : this._setCheckboxState(true);
   }
 
   private _setCheckboxDisableState(state: boolean) {
@@ -118,6 +160,7 @@ export class MultiSelectSearchDirective {
         if (event) {
           this._focusSearchInput();
           this._setCheckboxStateOnInput();
+          this._showNoOptions();
         }
         this._clearSearchInput();
       });
@@ -151,13 +194,13 @@ export class MultiSelectSearchDirective {
   }
 
   /**
-   * listen to input on search input
-   *
+   * listen to options on change
    */
-  private _setupInputChangeListener() {
-    fromEvent(this._searchInput, 'input')
+  private _setupOptionsChangeListener() {
+    this.matSelect.options.changes
       .pipe(takeUntil(this._destroy$))
-      .subscribe((eve) => {
+      .subscribe(() => {
+        this._showNoOptions();
         this.matSelect.options.forEach((item) => {
           const position = this._optionsSelected.selected.findIndex(
             (selectedItem) => selectedItem.viewValue === item.viewValue
@@ -177,11 +220,13 @@ export class MultiSelectSearchDirective {
    */
   private _setupSelectAllListener() {
     this._mCheck.change
-      .pipe(takeUntil(this._destroy$))
-      .subscribe((event: MatCheckboxChange) => {
-        if (event.checked) this._selectAll();
-        else this._deselectAll();
-      });
+      .pipe(
+        takeUntil(this._destroy$),
+        tap((e: MatCheckboxChange) =>
+          e.checked ? this._selectAll() : this._deselectAll()
+        )
+      )
+      .subscribe();
   }
 
   private _setControlValue() {
@@ -194,7 +239,12 @@ export class MultiSelectSearchDirective {
     this._setupClearButtonClickListener();
     this._setupSelectOpenListener();
     this._setupOptionSelectionListener();
-    this._setupInputChangeListener();
+    this._setupOptionsChangeListener();
     this._setupSelectAllListener();
+  }
+
+  ngOnDestroy(): void {
+    this._destroy$.next();
+    this._destroy$.complete();
   }
 }

@@ -77,7 +77,6 @@ export class MultimatselectComponent {
     'Cottage cheese',
     'Crumbled bacon',
     'Fontina cheese',
-    'Goat cheese',
     'Gouda cheese',
     'Havarti cheese',
     'Monterey Jack cheese',
@@ -104,5 +103,5 @@ export class MultimatselectComponent {
     'Walnuts',
     'White cheddar cheese',
     'Yellow bell pepper',
-  ];
+  ].sort((a, b) => a.localeCompare(b));
 }

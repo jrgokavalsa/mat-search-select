@@ -17,7 +17,7 @@
           #mCheck
           matTooltip="Select All"
         ></mat-checkbox>
-        <mat-form-field appearance="outline" floatLabel="always">
+        <mat-form-field>
           <input matInput #mInput placeholder="Search" autocomplete="off" />
           <mat-icon matSuffix>search</mat-icon>
         </mat-form-field>
@@ -32,7 +32,7 @@
           {{ toppings.value?.length === 2 ? "other" : "others" }})
         </span>
       </mat-select-trigger>
-      <div class="mat-search-options">
+      <div class="mat-search-options" #matOptions>
         <mat-option
           *ngFor="let topping of toppingList | multiSelectFilter : mInput.value"
           [value]="topping"
